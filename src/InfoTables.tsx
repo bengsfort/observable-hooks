@@ -2,49 +2,52 @@ import * as React from 'react'
 
 import { TableContainer, LikesContainer, ListItem, ListHeader, AddPopup } from './styledComponents'
 import { USER_STORE } from './index'
-import { addUserLike, addUserDislike, deleteUserLike, deleteUserDislike } from './asyncData.ts'
+import {
+  User,
+  Item,
+  addUserLike,
+  addUserDislike,
+  deleteUserLike,
+  deleteUserDislike
+} from './asyncData'
 
-const addLike = (user, text) =>
-  addUserLike(user, text).then(updatedUser =>
-    USER_STORE.setAtomicValue('users', users => {
-      const targetUser = users.find(listUser => listUser === user)
-      return users.map(listUser => (Object.is(listUser, targetUser) ? updatedUser : listUser))
+const addLike = (user: string, text: string) =>
+  addUserLike(user, text).then((updatedUser: User) =>
+    USER_STORE.setAtomicValue<User>('users', user, () => updatedUser)
+  )
+
+const deleteLike = (user: string, id: number) =>
+  deleteUserLike(user, id).then(({ status }: { status: number }) =>
+    USER_STORE.setAtomicValue<User>('users', user, (storedUser: User) => {
+      if (status !== 200) {
+        return storedUser
+      }
+      return {
+        ...storedUser,
+        likes: storedUser.likes.filter(like => like.id !== id)
+      }
     })
   )
 
-const deleteLike = (user, text) =>
-  deleteUserLike(user, text).then(({ status }) =>
-    USER_STORE.setAtomicValue('users', users => {
-      const targetUser = users.find(listUser => listUser.user === user)
-      return users.map(listUser =>
-        Object.is(listUser, targetUser) && status === 200
-          ? { ...listUser, likes: listUser.likes.filter(like => like !== text) }
-          : listUser
-      )
-    })
-  )
-
-const addDislike = (user, text) =>
+const addDislike = (user: string, text: string) =>
   addUserDislike(user, text).then(updatedUser =>
-    USER_STORE.setAtomicValue('users', users => {
-      const targetUser = users.find(listUser => listUser.user === user)
-      return users.map(listUser => (Object.is(listUser, targetUser) ? updatedUser : listUser))
-    })
+    USER_STORE.setAtomicValue('users', user, () => updatedUser)
   )
 
-const deleteDislike = (user, text) =>
-  deleteUserDislike(user, text).then(({ status }) =>
-    USER_STORE.setAtomicValue('users', users => {
-      const targetUser = users.find(listUser => listUser.user === user)
-      return users.map(listUser =>
-        Object.is(listUser, targetUser) && status === 200
-          ? { ...listUser, dislikes: listUser.dislikes.filter(dislike => dislike !== text) }
-          : listUser
-      )
+const deleteDislike = (user: string, id: number) =>
+  deleteUserDislike(user, id).then(({ status }) =>
+    USER_STORE.setAtomicValue<User>('users', user, targetUser => {
+      if (status !== 200) {
+        return targetUser
+      }
+      return {
+        ...targetUser,
+        dislikes: targetUser.dislikes.filter(dislike => dislike.id !== id)
+      }
     })
   )
 const LikesList = () => {
-  const user = USER_STORE.getValue('selectedUser')
+  const user = USER_STORE.getValue<User>('selectedUser')
   const [isOpen, setIsOpen] = React.useState(false)
   const [text, setText] = React.useState('')
   const toggleModal = () => setIsOpen(!isOpen)
@@ -68,7 +71,7 @@ const LikesList = () => {
         {user.likes.map(like => (
           <ListItem open={isOpen} key={like.item + like.id}>
             {like.item}
-            <i className="material-icons" onClick={() => deleteLike(user.user, like)}>
+            <i className="material-icons" onClick={() => deleteLike(user.user, like.id)}>
               delete
             </i>
           </ListItem>
@@ -79,7 +82,7 @@ const LikesList = () => {
 }
 
 const DislikesList = () => {
-  const user = USER_STORE.getValue('selectedUser')
+  const user = USER_STORE.getValue<User>('selectedUser')
   const [isOpen, setIsOpen] = React.useState(false)
   const [text, setText] = React.useState('')
   const toggleModal = () => setIsOpen(!isOpen)
@@ -102,7 +105,7 @@ const DislikesList = () => {
         {user.dislikes.map(dislike => (
           <ListItem open={isOpen} key={dislike.item + dislike.id}>
             {dislike.item}
-            <i className="material-icons" onClick={() => deleteDislike(user.user, dislike)}>
+            <i className="material-icons" onClick={() => deleteDislike(user.user, dislike.id)}>
               delete
             </i>
           </ListItem>

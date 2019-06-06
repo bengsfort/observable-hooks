@@ -1,6 +1,6 @@
 import { Subject } from 'rxjs'
 
-type DataResolver = (dataSet: { [key: string]: any }[]) => any
+type DataResolver<T> = (data: T) => T
 
 export interface SharedSubject {
   getSubscriber(key: string): Subject<any>
@@ -8,11 +8,11 @@ export interface SharedSubject {
   getSubscription(key: string): Subject<any>
   removeSubscription(key: string): void
   createSubscription(key: string): Subject<any>
-  setValue(key: string, value: any): void
-  setAtomicValue(key: string, dataResolver: DataResolver): void
+  setValue<T>(key: string, value: T): void
+  setAtomicValue: <T>(key: string, path: string, dataResolver: DataResolver<T>) => void
   getAllKeys(): string[]
   getSnapshot(): { [key: string]: any }
-  getValue(key: string): any
+  getValue<T>(key: string): T
 }
 
 export class SharedSubjectStore implements SharedSubject {
@@ -38,12 +38,12 @@ export class SharedSubjectStore implements SharedSubject {
     this.subjects.delete(key)
   }
 
-  public setValue = (key: string, value: any) => {
+  public setValue = <T>(key: string, value: T) => {
     this.store.set(key, value)
     this.subjects.get(key).next(value)
   }
 
-  public setAtomicValue = (key: string, dataResolver: DataResolver) => {
+  public setAtomicValue = <T>(key: string, path: string, dataResolver: DataResolver<T>) => {
     const collection = this.store.get(key)
     this.store.set(key, dataResolver(collection))
     this.subjects.get(key).next(dataResolver(collection))
@@ -51,7 +51,7 @@ export class SharedSubjectStore implements SharedSubject {
 
   public getSnapshot = () => this.store
   public getAllKeys = () => [...this.subjects.keys()]
-  public getValue = (key: string) => {
+  public getValue = <T>(key: string): T => {
     return this.store.get(key)
   }
 
